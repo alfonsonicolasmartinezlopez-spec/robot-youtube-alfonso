@@ -19,7 +19,8 @@ jobs:
           python-version: "3.11"
 
       - name: Instalar dependencias
-        run: pip install -r scripts/requirements.txt
+        run: pip install -r requirements.txt
+
 
       - name: Comprobar si toca ejecutar
         id: gate
@@ -55,5 +56,6 @@ jobs:
           CAPTIONS: "false"
           PUBLISH_HOUR: ${{ secrets.PUBLISH_HOUR }}
           TIMEZONE: Europe/Madrid
-        run: python scripts/render_and_upload.py
+        run: python render_and_upload.py
+
 
