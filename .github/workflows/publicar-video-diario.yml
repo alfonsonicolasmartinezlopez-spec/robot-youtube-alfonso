@@ -8,15 +8,20 @@ on:
 jobs:
   crear-y-programar:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+
       - name: Instalar FFmpeg
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
       - name: Instalar dependencias
-        run: pip install -r scripts/requirements.txt
+        run: pip install -r requirements.txt
+
       - name: Comprobar si toca ejecutar
         id: gate
         env:
@@ -24,29 +29,31 @@ jobs:
           TIMEZONE: Europe/Madrid
         run: |
           python - <<'PY'
-          import os, datetime as dt
+          import os
+          import datetime as dt
           from zoneinfo import ZoneInfo
-          now=dt.datetime.now(ZoneInfo(os.getenv('TIMEZONE','Europe/Madrid')))
-          target=os.getenv('PUBLISH_HOUR','19:00')
-          h,m=map(int,target.split(':'))
-          run=now.hour==h and now.minute<10
-          with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write(f"run={str(run).lower()}\n")
-          print(f"Hora local={now:%H:%M}; ejecutar={run}")
+
+          now = dt.datetime.now(ZoneInfo(os.getenv("TIMEZONE", "Europe/Madrid")))
+          target = os.getenv("PUBLISH_HOUR", "19:00")
+          hour, minute = map(int, target.split(":"))
+          should_run = now.hour == hour and now.minute < 10
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"run={str(should_run).lower()}\n")
+
+          print(f"Hora local: {now:%H:%M}; ejecutar: {should_run}")
           PY
+
       - name: Crear y programar
         if: steps.gate.outputs.run == 'true'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
-          ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
-          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          SUPABASE_KEY: <LaTex>{{ secrets.SUPABASE_KEY }}           GEMINI_API_KEY:</LaTex>{{ secrets.GEMINI_API_KEY }}
+          ELEVENLABS_API_KEY: <LaTex>{{ secrets.ELEVENLABS_API_KEY }}           ELEVENLABS_VOICE_ID:</LaTex>{{ secrets.ELEVENLABS_VOICE_ID }}
+          PEXELS_API_KEY: <LaTex>{{ secrets.PEXELS_API_KEY }}           YOUTUBE_CLIENT_ID:</LaTex>{{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: <LaTex>{{ secrets.YOUTUBE_CLIENT_SECRET }}           YOUTUBE_REFRESH_TOKEN:</LaTex>{{ secrets.YOUTUBE_REFRESH_TOKEN }}
           VIDEO_LANGUAGE: American English
           CAPTIONS: "false"
           PUBLISH_HOUR: ${{ secrets.PUBLISH_HOUR }}
           TIMEZONE: Europe/Madrid
-        run: python scripts/render_and_upload.py
+        run: python render_and_upload.py
