@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "0 * * * *"
   workflow_dispatch:
+    inputs:
+      force_run:
+        description: "Ejecutar ahora aunque no sea la hora configurada"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   crear-y-programar:
@@ -29,8 +35,7 @@ jobs:
       - name: Comprobar si toca ejecutar
         id: gate
         env:
-          PUBLISH_HOUR: ${{ secrets.PUBLISH_HOUR }}
-          TIMEZONE: Europe/Madrid
+          PUBLISH_HOUR: <LaTex>{{ secrets.PUBLISH_HOUR }}           TIMEZONE: Europe/Madrid           FORCE_RUN:</LaTex>{{ inputs.force_run || false }}
         run: |
           python - <<'PY'
           import os
@@ -39,30 +44,28 @@ jobs:
 
           timezone = os.getenv("TIMEZONE", "Europe/Madrid")
           publish_hour = os.getenv("PUBLISH_HOUR", "19:00")
+          force_run = os.getenv("FORCE_RUN", "false").lower() == "true"
 
           now = dt.datetime.now(ZoneInfo(timezone))
           hour, minute = map(int, publish_hour.split(":"))
-
-          should_run = now.hour == hour and now.minute < 10
+          should_run = force_run or (now.hour == hour and now.minute < 10)
 
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write(f"run={str(should_run).lower()}\n")
 
           print(f"Hora local: {now:%H:%M}")
           print(f"Hora configurada: {publish_hour}")
+          print(f"Ejecución manual forzada: {force_run}")
           print(f"Ejecutar: {should_run}")
           PY
 
       - name: Crear y programar vídeo
         if: steps.gate.outputs.run == 'true'
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: <LaTex>{{ secrets.SUPABASE_KEY }}           GEMINI_API_KEY:</LaTex>{{ secrets.GEMINI_API_KEY }}
-          ELEVENLABS_API_KEY: <LaTex>{{ secrets.ELEVENLABS_API_KEY }}           ELEVENLABS_VOICE_ID:</LaTex>{{ secrets.ELEVENLABS_VOICE_ID }}
-          PEXELS_API_KEY: <LaTex>{{ secrets.PEXELS_API_KEY }}           YOUTUBE_CLIENT_ID:</LaTex>{{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: <LaTex>{{ secrets.YOUTUBE_CLIENT_SECRET }}           YOUTUBE_REFRESH_TOKEN:</LaTex>{{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          VIDEO_LANGUAGE: American English
-          CAPTIONS: "false"
-          PUBLISH_HOUR: ${{ secrets.PUBLISH_HOUR }}
+          SUPABASE_URL: <LaTex>{{ secrets.SUPABASE_URL }}           SUPABASE_KEY:</LaTex>{{ secrets.SUPABASE_KEY }}
+          GEMINI_API_KEY: <LaTex>{{ secrets.GEMINI_API_KEY }}           ELEVENLABS_API_KEY:</LaTex>{{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID: <LaTex>{{ secrets.ELEVENLABS_VOICE_ID }}           PEXELS_API_KEY:</LaTex>{{ secrets.PEXELS_API_KEY }}
+          YOUTUBE_CLIENT_ID: <LaTex>{{ secrets.YOUTUBE_CLIENT_ID }}           YOUTUBE_CLIENT_SECRET:</LaTex>{{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: <LaTex>{{ secrets.YOUTUBE_REFRESH_TOKEN }}           VIDEO_LANGUAGE: American English           CAPTIONS: "false"           PUBLISH_HOUR:</LaTex>{{ secrets.PUBLISH_HOUR }}
           TIMEZONE: Europe/Madrid
         run: python render_and_upload.py
