@@ -3,19 +3,23 @@ name: Crear y programar vídeo diario
 on:
   schedule:
     - cron: "0 * * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 jobs:
   crear-y-programar:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Descargar código
+        uses: actions/checkout@v4
 
       - name: Instalar FFmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
 
-      - uses: actions/setup-python@v5
+      - name: Configurar Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
@@ -33,18 +37,23 @@ jobs:
           import datetime as dt
           from zoneinfo import ZoneInfo
 
-          now = dt.datetime.now(ZoneInfo(os.getenv("TIMEZONE", "Europe/Madrid")))
-          target = os.getenv("PUBLISH_HOUR", "19:00")
-          hour, minute = map(int, target.split(":"))
+          timezone = os.getenv("TIMEZONE", "Europe/Madrid")
+          publish_hour = os.getenv("PUBLISH_HOUR", "19:00")
+
+          now = dt.datetime.now(ZoneInfo(timezone))
+          hour, minute = map(int, publish_hour.split(":"))
+
           should_run = now.hour == hour and now.minute < 10
 
-          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-              f.write(f"run={str(should_run).lower()}\n")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"run={str(should_run).lower()}\n")
 
-          print(f"Hora local: {now:%H:%M}; ejecutar: {should_run}")
+          print(f"Hora local: {now:%H:%M}")
+          print(f"Hora configurada: {publish_hour}")
+          print(f"Ejecutar: {should_run}")
           PY
 
-      - name: Crear y programar
+      - name: Crear y programar vídeo
         if: steps.gate.outputs.run == 'true'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
